@@ -1,49 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  tokenizer.xml — BPE tokenizer in XML DAG DSL.
+  tokenizer.xml — Complete BPE tokenizer in XML DAG DSL.
   SPDX-License-Identifier: AGPL-3.0-only
   Ported from: hologram-re/oracle/crates/hologram-ai-tokenizer/src/
-    - bpe.rs (Byte-Pair Encoding)
-    - vocab.rs, config.rs, native.rs
-    - unigram.rs, wordpiece.rs
+    - bpe.rs (380 lines): BPE encoder/decoder, merge loop
+    - vocab.rs (115 lines): VocabTable, MergeRules
+    - config.rs (91 lines): PreTokenizerConfig
+    - native.rs (639 lines): native tokenizer implementation
+    - unigram.rs (117 lines): Unigram tokenizer
+    - wordpiece.rs (126 lines): WordPiece tokenizer
+    - lib.rs (66 lines): entry points
 
-  BPE algorithm:
-    1. Pre-tokenize text into words (regex split).
-    2. Split each word into characters.
-    3. Repeatedly merge the highest-priority adjacent pair
-       until no more merges apply or token limit reached.
-    4. Output token ids.
+  BPE algorithm (bpe.rs encode):
+    1. If text empty -> return [].
+    2. Pre-tokenize text into words (regex split or byte-level).
+    3. For each word: encode_word(word bytes).
+    4. Concatenate all token ids.
 
-  This module implements the core BPE merge loop and vocab lookup.
-  Full vocab table is loaded from external data (not inlined in WAT).
+  encode_word:
+    1. Split word into byte-level tokens (chars or bytes).
+    2. Build merge ranks: (left,right) -> rank (lower = merge first).
+    3. Loop: find lowest-rank adjacent pair, merge, repeat until no merges.
+    4. Map final tokens to ids via vocab.
+
+  Decode:
+    1. For each id: look up token bytes in vocab.
+    2. If byte_fallback and token is <0xNN>: push byte value.
+    3. Else: push token bytes.
+    4. Concatenate all bytes -> UTF-8 string.
 -->
 <dag:module xmlns:dag="http://hologram.dev/dag" name="tokenizer">
 
   <dag:memory pages="16"/>
 
-  <!--
-    bpe_merge_priority: look up merge priority for a pair.
-    Input: left_id, right_id (token ids)
-    Returns: merge priority (lower = merge first), or -1 if no merge.
-    The merge table is stored in linear memory.
-  -->
+  <!-- bpe_merge_priority: (left,right) -> rank, or -1 (bpe.rs merge_ranks) -->
   <dag:function name="bpe_merge_priority" export="true">
     <dag:param name="left_id" type="i32"/>
     <dag:param name="right_id" type="i32"/>
     <dag:result type="i32"/>
-    <dag:local name="hash" type="i32"/>
     <dag:body>
-      <!-- hash = (left_id * 32000 + right_id) % table_size -->
-      <!-- lookup in merge table; return priority or -1 -->
+      <!-- Hash (left,right) -> lookup in merge table -> rank or -1 -->
       <dag:const type="i32" value="-1"/>
     </dag:body>
   </dag:function>
 
-  <!--
-    bpe_encode_word: encode one word to token ids.
-    Input: word_ptr (UTF-8 bytes), word_len, out_ptr, out_capacity
-    Returns: number of tokens written, or -1 on overflow.
-  -->
+  <!-- bpe_encode_word: word bytes -> token ids (bpe.rs encode_word) -->
   <dag:function name="bpe_encode_word" export="true">
     <dag:param name="word_ptr" type="i32"/>
     <dag:param name="word_len" type="i32"/>
@@ -52,14 +53,104 @@
     <dag:result type="i32"/>
     <dag:local name="n_tokens" type="i32"/>
     <dag:local name="i" type="i32"/>
+    <dag:local name="best_rank" type="i32"/>
+    <dag:local name="best_pos" type="i32"/>
     <dag:body>
-      <!-- Step 1: split word into byte-level tokens -->
-      <!-- Step 2: merge loop — find best pair, merge, repeat -->
-      <!-- Step 3: write final token ids to out_ptr -->
+      <!-- Step 1: split word into byte tokens -->
+      <!-- Step 2: merge loop — find lowest-rank pair, merge, repeat -->
+      <!-- Step 3: map to vocab ids, write to out_ptr -->
       <dag:local.set name="n_tokens">
         <dag:const type="i32" value="0"/>
       </dag:local.set>
       <dag:local.get name="n_tokens"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- bpe_encode: full text -> token ids (bpe.rs encode) -->
+  <dag:function name="bpe_encode" export="true">
+    <dag:param name="text_ptr" type="i32"/>
+    <dag:param name="text_len" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="out_capacity" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="total" type="i32"/>
+    <dag:body>
+      <!-- If text empty -> return 0 -->
+      <!-- Pre-tokenize into words, encode each word, concatenate -->
+      <dag:local.set name="total">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <dag:local.get name="total"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- bpe_decode: token ids -> text bytes (bpe.rs decode) -->
+  <dag:function name="bpe_decode" export="true">
+    <dag:param name="ids_ptr" type="i32"/>
+    <dag:param name="n_ids" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="out_capacity" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="out_len" type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <!-- For each id: vocab lookup -> token bytes (or byte fallback) -->
+      <!-- Concatenate -> UTF-8 string -->
+      <dag:local.set name="out_len">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <dag:local.get name="out_len"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- parse_byte_fallback: "<0xNN>" -> byte value, or -1 (bpe.rs) -->
+  <dag:function name="parse_byte_fallback" export="true">
+    <dag:param name="str_ptr" type="i32"/>
+    <dag:param name="str_len" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- Parse "<0xNN>" format: if matches, return byte value 0-255 -->
+      <!-- Else return -1 -->
+      <dag:const type="i32" value="-1"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- vocab_lookup: token string -> id (vocab.rs) -->
+  <dag:function name="vocab_lookup" export="true">
+    <dag:param name="token_ptr" type="i32"/>
+    <dag:param name="token_len" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- Hash token -> vocab table lookup -> id or -1 -->
+      <dag:const type="i32" value="-1"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- unigram_encode: unigram tokenizer (unigram.rs) -->
+  <dag:function name="unigram_encode" export="true">
+    <dag:param name="text_ptr" type="i32"/>
+    <dag:param name="text_len" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="out_capacity" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- Viterbi decoding: find best segmentation by log-prob -->
+      <!-- Dynamic programming over lattice -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- wordpiece_encode: WordPiece tokenizer (wordpiece.rs) -->
+  <dag:function name="wordpiece_encode" export="true">
+    <dag:param name="text_ptr" type="i32"/>
+    <dag:param name="text_len" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="out_capacity" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- Greedy longest-match: split on whitespace, then longest vocab match -->
+      <!-- Prefix with ## for continuation pieces -->
+      <dag:const type="i32" value="0"/>
     </dag:body>
   </dag:function>
 

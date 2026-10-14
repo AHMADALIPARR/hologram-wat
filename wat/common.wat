@@ -3,6 +3,16 @@
 ;; DO NOT EDIT. Edit the XML DSL and re-run the transform.
 (module
   (memory 16)
+  (func $dtype_byte_size (export "dtype_byte_size")
+    (param $dtype i32)
+    (result i32)
+    local.get $dtype
+  )
+  (func $op_category (export "op_category")
+    (param $op i32)
+    (result i32)
+    i32.const 0
+  )
   (func $ir_eval_add (export "ir_eval_add")
     (param $a_ptr i32)
     (param $b_ptr i32)
@@ -10,8 +20,17 @@
     (param $numel i32)
     (result i32)
     (local $i i32)
-    (local $a_val f32)
-    (local $b_val f32)
+    i32.const 0
+    local.set $i
+    i32.const 0
+  )
+  (func $ir_eval_mul (export "ir_eval_mul")
+    (param $a_ptr i32)
+    (param $b_ptr i32)
+    (param $out_ptr i32)
+    (param $numel i32)
+    (result i32)
+    (local $i i32)
     i32.const 0
     local.set $i
     i32.const 0
@@ -28,6 +47,65 @@
     (local $j i32)
     (local $p i32)
     (local $sum f32)
+    i32.const 0
+  )
+  (func $ir_eval_softmax (export "ir_eval_softmax")
+    (param $in_ptr i32)
+    (param $out_ptr i32)
+    (param $numel i32)
+    (result i32)
+    (local $max_val f32)
+    (local $sum f32)
+    (local $i i32)
+    i32.const 0
+  )
+  (func $ir_eval_layernorm (export "ir_eval_layernorm")
+    (param $in_ptr i32)
+    (param $weight_ptr i32)
+    (param $bias_ptr i32)
+    (param $out_ptr i32)
+    (param $numel i32)
+    (param $eps f32)
+    (result i32)
+    (local $mean f32)
+    (local $var f32)
+    (local $i i32)
+    i32.const 0
+  )
+  (func $ir_eval_rmsnorm (export "ir_eval_rmsnorm")
+    (param $in_ptr i32)
+    (param $weight_ptr i32)
+    (param $out_ptr i32)
+    (param $numel i32)
+    (param $eps f32)
+    (result i32)
+    (local $rms f32)
+    (local $i i32)
+    i32.const 0
+  )
+  (func $ir_eval_gelu (export "ir_eval_gelu")
+    (param $in_ptr i32)
+    (param $out_ptr i32)
+    (param $numel i32)
+    (result i32)
+    (local $i i32)
+    i32.const 0
+  )
+  (func $ir_eval_silu (export "ir_eval_silu")
+    (param $in_ptr i32)
+    (param $out_ptr i32)
+    (param $numel i32)
+    (result i32)
+    (local $i i32)
+    i32.const 0
+  )
+  (func $graph_toposort (export "graph_toposort")
+    (param $nodes_ptr i32)
+    (param $n_nodes i32)
+    (param $edges_ptr i32)
+    (param $n_edges i32)
+    (param $out_ptr i32)
+    (result i32)
     i32.const 0
   )
 )

@@ -3,44 +3,86 @@
 ;; DO NOT EDIT. Edit the XML DSL and re-run the transform.
 (module
   (memory 1)
+  (func $abs_f32 (export "abs_f32")
+    (param $x f32)
+    (result f32)
+    local.get $x
+  )
+  (func $f16_to_f32 (export "f16_to_f32")
+    (param $bits i32)
+    (result f32)
+    (local $sign i32)
+    (local $exp i32)
+    (local $mant i32)
+    f32.const 1.0
+  )
   (func $dequant_q4_0_block (export "dequant_q4_0_block")
     (param $block_ptr i32)
     (param $out_ptr i32)
     (result i32)
+    (local $scale_bits i32)
     (local $scale f32)
     (local $i i32)
-    (local $packed i32)
-    (local $q_lo i32)
-    (local $q_hi i32)
-    f32.const 1.0
+    (local $byte i32)
+    (local $lo i32)
+    (local $hi i32)
+    (local $val_lo f32)
+    (local $val_hi f32)
+    local.get $block_ptr
+    i32.load offset=0 align=2
+    local.set $scale_bits
+    local.get $scale_bits
+    call $f16_to_f32
     local.set $scale
     i32.const 0
     local.set $i
+    local.get $block_ptr
+    i32.load offset=2 align=1
+    local.set $byte
+    i32.const 8
+    i32.const 8
+    i32.sub
+    local.set $lo
     i32.const 0
   )
   (func $dequant_q8_0_block (export "dequant_q8_0_block")
     (param $block_ptr i32)
     (param $out_ptr i32)
     (result i32)
+    (local $scale_bits i32)
     (local $scale f32)
     (local $i i32)
     (local $q i32)
-    f32.const 1.0
+    local.get $block_ptr
+    i32.load offset=0 align=2
+    local.set $scale_bits
+    local.get $scale_bits
+    call $f16_to_f32
     local.set $scale
     i32.const 0
     local.set $i
     i32.const 0
   )
-  (func $quant_q4_0_block (export "quant_q4_0_block")
-    (param $in_ptr i32)
-    (param $out_ptr i32)
+  (func $encode_int8_per_channel (export "encode_int8_per_channel")
+    (param $w_ptr i32)
+    (param $k i32)
+    (param $n i32)
+    (param $q_ptr i32)
+    (param $scales_ptr i32)
     (result i32)
-    (local $max_abs f32)
-    (local $scale f32)
-    (local $inv_scale f32)
+    (local $j i32)
     (local $i i32)
-    f32.const 0.0
-    local.set $max_abs
+    (local $amax f32)
+    (local $scale f32)
+    (local $val f32)
+    i32.const 0
+    local.set $j
+    i32.const 0
+  )
+  (func $quant_scheme_id (export "quant_scheme_id")
+    (param $name_ptr i32)
+    (param $name_len i32)
+    (result i32)
     i32.const 0
   )
 )

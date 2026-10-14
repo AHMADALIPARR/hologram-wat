@@ -20,7 +20,6 @@
     (result i64)
     (local $result i64)
     (local $i i32)
-    (local $dim i64)
     i64.const 1
     local.set $result
     i32.const 0
@@ -42,5 +41,34 @@
     call $dtype_size
     local.set $elem_size
     local.get $numel
+  )
+  (func $map_dtype (export "map_dtype")
+    (param $safe_dtype i32)
+    (result i32)
+    local.get $safe_dtype
+  )
+  (func $family_id (export "family_id")
+    (param $name_ptr i32)
+    (param $name_len i32)
+    (result i32)
+    i32.const 0
+  )
+  (func $effective_context (export "effective_context")
+    (param $max_pos i32)
+    (param $sliding_window i32)
+    (param $clamp i32)
+    (result i32)
+    (local $result i32)
+    local.get $max_pos
+    local.set $result
+    local.get $result
+  )
+  (func $head_dim (export "head_dim")
+    (param $hidden_size i32)
+    (param $num_heads i32)
+    (result i32)
+    local.get $hidden_size
+    local.get $num_heads
+    i32.div_s
   )
 )

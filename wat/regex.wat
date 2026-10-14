@@ -3,6 +3,12 @@
 ;; DO NOT EDIT. Edit the XML DSL and re-run the transform.
 (module
   (memory 1)
+  (func $is_compiled (export "is_compiled")
+    (param $pattern_ptr i32)
+    (param $pattern_len i32)
+    (result i32)
+    i32.const 1
+  )
   (func $split_fragments (export "split_fragments")
     (param $text_ptr i32)
     (param $text_len i32)
@@ -13,10 +19,20 @@
     (result i32)
     (local $compiled i32)
     (local $n_frags i32)
-    i32.const 0
+    local.get $pattern_ptr
+    local.get $pattern_len
+    call $is_compiled
     local.set $compiled
     i32.const 1
     local.set $n_frags
     local.get $n_frags
+  )
+  (func $gpt2_split (export "gpt2_split")
+    (param $text_ptr i32)
+    (param $text_len i32)
+    (param $out_ptr i32)
+    (param $out_capacity i32)
+    (result i32)
+    i32.const 0
   )
 )

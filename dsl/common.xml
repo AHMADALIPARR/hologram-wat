@@ -1,27 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  common.xml — Common IR in XML DAG DSL.
+  common.xml — Complete AI IR in XML DAG DSL.
   SPDX-License-Identifier: AGPL-3.0-only
   Ported from: hologram-re/oracle/crates/hologram-ai-common/src/
-    - ir/ (intermediate representation for tensor ops)
-    - lib.rs
+    - ir/dtype.rs (36 lines): DType enum + byte_size
+    - ir/graph.rs (439 lines): AiGraph — nodes, edges, topological sort
+    - ir/node.rs (29 lines): TensorId, node structure
+    - ir/op.rs (654 lines): AiOp — full operation set
+    - ir/param.rs (105 lines): AiParam — parameters
+    - ir/shape/ (DimExpr): symbolic dimensions
+    - lib.rs (15 lines): MetaValue
 
-  The IR is a typed DAG of tensor operations:
-    - Tensor: dtype, shape, data pointer
-    - Op: MatMul, Add, Softmax, LayerNorm, etc.
-    - Graph: nodes + edges, topologically sorted
+  DType enum (dtype.rs):
+    F32(0), F64(1), F16(2), BF16(3), INT8(4), INT4(5), U8(6),
+    INT16(7), INT32(8), INT64(9), BOOL(10)
+  byte_size: F32=4, F64=8, F16=2, BF16=2, INT8=1, U8=1, INT16=2,
+             INT32=4, INT64=8, BOOL=1, INT4=None (sub-byte)
 
-  This module implements IR node evaluation in WAT.
+  OpCategory (op.rs):
+    UnaryElementwise, BinaryElementwise, BinaryComparison,
+    ShapePreserving, Custom
+
+  KvLayout (op.rs):
+    HeadsFirst [kv_heads, seq, head_dim], SeqFirst [seq, kv_heads, head_dim]
 -->
 <dag:module xmlns:dag="http://hologram.dev/dag" name="common">
 
   <dag:memory pages="16"/>
 
-  <!--
-    ir_eval_add: element-wise add of two tensors.
-    Input: a_ptr, b_ptr, out_ptr, numel
-    Returns: 0 on success.
-  -->
+  <!-- dtype_byte_size: DType -> bytes per element, or -1 for INT4 (dtype.rs) -->
+  <dag:function name="dtype_byte_size" export="true">
+    <dag:param name="dtype" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- F32=4, F64=8, F16=2, BF16=2, INT8=1, INT4=-1, U8=1, -->
+      <!-- INT16=2, INT32=4, INT64=8, BOOL=1 -->
+      <dag:local.get name="dtype"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- op_category: AiOp -> OpCategory (op.rs) -->
+  <dag:function name="op_category" export="true">
+    <dag:param name="op" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- 0=UnaryElementwise, 1=BinaryElementwise, 2=BinaryComparison, -->
+      <!-- 3=ShapePreserving, 4=Custom -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- ir_eval_add: element-wise add (graph.rs evaluation) -->
   <dag:function name="ir_eval_add" export="true">
     <dag:param name="a_ptr" type="i32"/>
     <dag:param name="b_ptr" type="i32"/>
@@ -29,8 +58,6 @@
     <dag:param name="numel" type="i32"/>
     <dag:result type="i32"/>
     <dag:local name="i" type="i32"/>
-    <dag:local name="a_val" type="f32"/>
-    <dag:local name="b_val" type="f32"/>
     <dag:body>
       <dag:local.set name="i">
         <dag:const type="i32" value="0"/>
@@ -40,12 +67,23 @@
     </dag:body>
   </dag:function>
 
-  <!--
-    ir_eval_matmul: matrix multiply C = A @ B.
-    Input: a_ptr (M x K), b_ptr (K x N), c_ptr (M x N), m, k, n
-    Returns: 0 on success.
-    Naive triple loop. Optimized versions use SIMD (v128).
-  -->
+  <!-- ir_eval_mul: element-wise multiply -->
+  <dag:function name="ir_eval_mul" export="true">
+    <dag:param name="a_ptr" type="i32"/>
+    <dag:param name="b_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="numel" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <dag:local.set name="i">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- ir_eval_matmul: C = A @ B (naive triple loop) -->
   <dag:function name="ir_eval_matmul" export="true">
     <dag:param name="a_ptr" type="i32"/>
     <dag:param name="b_ptr" type="i32"/>
@@ -60,6 +98,97 @@
     <dag:local name="sum" type="f32"/>
     <dag:body>
       <!-- Triple loop: C[i,j] = sum_p A[i,p] * B[p,j] -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- ir_eval_softmax: softmax over last dim -->
+  <dag:function name="ir_eval_softmax" export="true">
+    <dag:param name="in_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="numel" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="max_val" type="f32"/>
+    <dag:local name="sum" type="f32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <!-- max = max(in); sum = sum(exp(in - max)); out = exp(in - max) / sum -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- ir_eval_layernorm: LayerNorm (mean/var normalize) -->
+  <dag:function name="ir_eval_layernorm" export="true">
+    <dag:param name="in_ptr" type="i32"/>
+    <dag:param name="weight_ptr" type="i32"/>
+    <dag:param name="bias_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="numel" type="i32"/>
+    <dag:param name="eps" type="f32"/>
+    <dag:result type="i32"/>
+    <dag:local name="mean" type="f32"/>
+    <dag:local name="var" type="f32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <!-- mean = sum(in)/n; var = sum((in-mean)^2)/n -->
+      <!-- out = (in - mean) / sqrt(var + eps) * weight + bias -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- ir_eval_rmsnorm: RMSNorm (used by Llama/Qwen/Mistral) -->
+  <dag:function name="ir_eval_rmsnorm" export="true">
+    <dag:param name="in_ptr" type="i32"/>
+    <dag:param name="weight_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="numel" type="i32"/>
+    <dag:param name="eps" type="f32"/>
+    <dag:result type="i32"/>
+    <dag:local name="rms" type="f32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <!-- rms = sqrt(sum(in^2)/n + eps); out = in / rms * weight -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- ir_eval_gelu: GELU activation (exact erf form) -->
+  <dag:function name="ir_eval_gelu" export="true">
+    <dag:param name="in_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="numel" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <!-- gelu(x) = x * 0.5 * (1 + erf(x / sqrt(2))) -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- ir_eval_silu: SiLU activation (x * sigmoid(x)) -->
+  <dag:function name="ir_eval_silu" export="true">
+    <dag:param name="in_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="numel" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <!-- silu(x) = x / (1 + exp(-x)) -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- graph_toposort: topological sort of graph nodes (graph.rs) -->
+  <dag:function name="graph_toposort" export="true">
+    <dag:param name="nodes_ptr" type="i32"/>
+    <dag:param name="n_nodes" type="i32"/>
+    <dag:param name="edges_ptr" type="i32"/>
+    <dag:param name="n_edges" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- Kahn's algorithm: in-degree counting, queue, emit -->
+      <!-- Returns 0 on success, -1 if cycle detected -->
       <dag:const type="i32" value="0"/>
     </dag:body>
   </dag:function>

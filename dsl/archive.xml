@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  archive.xml — .holo content-addressed archive format in XML DAG DSL.
+  SPDX-License-Identifier: AGPL-3.0-only
+  Ported from: hologram-ai archivum (content-addressed .holo archives)
+
+  .holo archive format:
+    - Manifest: JSON with tensor metadata, config, kappa hashes
+    - Tensors: content-addressed by BLAKE3 hash (kappa)
+    - Chunks: 1024-byte chunks, each hashed, Merkle tree
+    - Ledger: append-only log of archive operations
+
+  Archive operations:
+    - create: initialize empty archive
+    - add_tensor: hash tensor, store chunks, update manifest
+    - get_tensor: fetch by kappa, verify hash
+    - verify: check all chunk hashes against manifest
+-->
+<dag:module xmlns:dag="http://hologram.dev/dag" name="archive">
+
+  <dag:memory pages="32"/>
+
+  <!-- archive_create: initialize empty archive in memory -->
+  <dag:function name="archive_create" export="true">
+    <dag:param name="archive_ptr" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- Initialize manifest, empty tensor table, empty chunk store -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- archive_add_tensor: hash and store tensor -->
+  <dag:function name="archive_add_tensor" export="true">
+    <dag:param name="archive_ptr" type="i32"/>
+    <dag:param name="name_ptr" type="i32"/>
+    <dag:param name="name_len" type="i32"/>
+    <dag:param name="data_ptr" type="i32"/>
+    <dag:param name="data_len" type="i32"/>
+    <dag:param name="dtype" type="i32"/>
+    <dag:param name="shape_ptr" type="i32"/>
+    <dag:param name="rank" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- kappa = BLAKE3(data) -->
+      <!-- Split data into 1024-byte chunks, hash each -->
+      <!-- Store chunks, update manifest with kappa + metadata -->
+      <!-- Returns 0 on success -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- archive_get_tensor: fetch tensor by name, verify hash -->
+  <dag:function name="archive_get_tensor" export="true">
+    <dag:param name="archive_ptr" type="i32"/>
+    <dag:param name="name_ptr" type="i32"/>
+    <dag:param name="name_len" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="out_capacity" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- Look up kappa from manifest -->
+      <!-- Fetch chunks, reassemble, verify BLAKE3 == kappa -->
+      <!-- Returns bytes written, or -1 if hash mismatch -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- archive_verify: check all chunk hashes -->
+  <dag:function name="archive_verify" export="true">
+    <dag:param name="archive_ptr" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- For each tensor: rehash data, compare to manifest kappa -->
+      <!-- Returns 0 if all match, -1 if any mismatch -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- ledger_append: append record to append-only log -->
+  <dag:function name="ledger_append" export="true">
+    <dag:param name="ledger_ptr" type="i32"/>
+    <dag:param name="record_ptr" type="i32"/>
+    <dag:param name="record_len" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- Append record with SHA-256 chain: hash = SHA256(prev_hash || record) -->
+      <!-- Returns new ledger length -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+</dag:module>

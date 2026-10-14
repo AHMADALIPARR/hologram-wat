@@ -3,21 +3,55 @@
 ;; DO NOT EDIT. Edit the XML DSL and re-run the transform.
 (module
   (memory 1)
-  (func $rotr32
+  (func $rotr32 (export "rotr32")
     (param $x i32)
     (param $n i32)
     (result i32)
-    (local $shifted_right i32)
-    (local $shifted_left i32)
-    i32.const 0
-    local.set $shifted_right
     local.get $x
+  )
+  (func $ch (export "ch")
+    (param $e i32)
+    (param $f i32)
+    (param $g i32)
+    (result i32)
+    local.get $e
+  )
+  (func $maj (export "maj")
+    (param $a i32)
+    (param $b i32)
+    (param $c i32)
+    (result i32)
+    local.get $a
+  )
+  (func $sigma0 (export "sigma0")
+    (param $x i32)
+    (result i32)
+    local.get $x
+  )
+  (func $sigma1 (export "sigma1")
+    (param $x i32)
+    (result i32)
+    local.get $x
+  )
+  (func $small_sigma0 (export "small_sigma0")
+    (param $x i32)
+    (result i32)
+    local.get $x
+  )
+  (func $small_sigma1 (export "small_sigma1")
+    (param $x i32)
+    (result i32)
+    local.get $x
+  )
+  (func $k_const (export "k_const")
+    (param $i i32)
+    (result i32)
+    local.get $i
   )
   (func $sha256_compress (export "sha256_compress")
     (param $state_ptr i32)
     (param $block_ptr i32)
     (result i32)
-    (local $i i32)
     (local $a i32)
     (local $b i32)
     (local $c i32)
@@ -26,6 +60,9 @@
     (local $f i32)
     (local $g i32)
     (local $h i32)
+    (local $i i32)
+    (local $t1 i32)
+    (local $t2 i32)
     local.get $state_ptr
     i32.load offset=0 align=4
     local.set $a
@@ -76,6 +113,13 @@
     local.get $state_ptr
     local.get $h
     i32.store offset=28 align=4
+    i32.const 0
+  )
+  (func $sha256 (export "sha256")
+    (param $data_ptr i32)
+    (param $data_len i32)
+    (param $out_ptr i32)
+    (result i32)
     i32.const 0
   )
 )

@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  inference.xml — Transformer forward pass in XML DAG DSL.
+  SPDX-License-Identifier: AGPL-3.0-only
+  Ported from: hologram-ai inference engine (decoder-only transformer)
+
+  Architecture (from parametric.rs + common IR):
+    - Decoder-only transformer, Llama/Qwen2/Mistral/Phi3 families
+    - RMSNorm (pre-attention and pre-MLP)
+    - GQA attention (grouped-query): Q heads, fewer KV heads
+    - RoPE positional encoding (rotary)
+    - SwiGLU MLP: gate (SiLU) * up, then down
+    - Causal masking: token i attends to tokens 0..i only
+    - KV cache: K/V stored per layer, appended each step
+
+  Forward pass per layer:
+    1. h = RMSNorm(x)
+    2. q, k, v = Wq(h), Wk(h), Wv(h)
+    3. q, k = RoPE(q, k, position)
+    4. attn = softmax(q @ k^T / sqrt(d) + mask) @ v
+    5. x = x + Wo(attn)
+    6. h2 = RMSNorm(x)
+    7. mlp = Wdown(SiLU(Wgate(h2)) * Wup(h2))
+    8. x = x + mlp
+
+  Final: logits = Whead(RMSNorm(x))
+-->
+<dag:module xmlns:dag="http://hologram.dev/dag" name="inference">
+
+  <dag:memory pages="64"/>
+
+  <!-- rmsnorm: x / sqrt(mean(x^2) + eps) * weight -->
+  <dag:function name="rmsnorm" export="true">
+    <dag:param name="x_ptr" type="i32"/>
+    <dag:param name="weight_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="dim" type="i32"/>
+    <dag:param name="eps" type="f32"/>
+    <dag:result type="i32"/>
+    <dag:local name="ss" type="f32"/>
+    <dag:local name="rms" type="f32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <!-- ss = sum(x^2) / dim; rms = sqrt(ss + eps); out = x / rms * weight -->
+      <dag:local.set name="ss">
+        <dag:const type="f32" value="0.0"/>
+      </dag:local.set>
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- rope: apply rotary position embedding to q and k -->
+  <dag:function name="rope" export="true">
+    <dag:param name="q_ptr" type="i32"/>
+    <dag:param name="k_ptr" type="i32"/>
+    <dag:param name="pos" type="i32"/>
+    <dag:param name="head_dim" type="i32"/>
+    <dag:param name="theta" type="f32"/>
+    <dag:result type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:local name="freq" type="f32"/>
+    <dag:local name="angle" type="f32"/>
+    <dag:body>
+      <!-- For each pair (x0, x1) at positions (2i, 2i+1): -->
+      <!--   freq = 1 / theta^(2i / head_dim) -->
+      <!--   angle = pos * freq -->
+      <!--   (x0', x1') = (x0*cos - x1*sin, x0*sin + x1*cos) -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- attention: scaled dot-product attention with causal mask -->
+  <dag:function name="attention" export="true">
+    <dag:param name="q_ptr" type="i32"/>
+    <dag:param name="k_ptr" type="i32"/>
+    <dag:param name="v_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="seq_len" type="i32"/>
+    <dag:param name="head_dim" type="i32"/>
+    <dag:param name="n_heads" type="i32"/>
+    <dag:param name="n_kv_heads" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="scale" type="f32"/>
+    <dag:local name="h" type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:local name="j" type="i32"/>
+    <dag:body>
+      <!-- scale = 1 / sqrt(head_dim) -->
+      <!-- For each head h, each query position i: -->
+      <!--   scores[j] = (q[i] . k[j]) * scale for j <= i (causal) -->
+      <!--   probs = softmax(scores) -->
+      <!--   out[i] = sum_j probs[j] * v[j] -->
+      <!-- GQA: KV heads repeated to match Q heads -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- swiglu: SwiGLU MLP — down(silu(gate) * up) -->
+  <dag:function name="swiglu" export="true">
+    <dag:param name="x_ptr" type="i32"/>
+    <dag:param name="gate_ptr" type="i32"/>
+    <dag:param name="up_ptr" type="i32"/>
+    <dag:param name="down_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="hidden" type="i32"/>
+    <dag:param name="intermediate" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:local name="gate_val" type="f32"/>
+    <dag:local name="up_val" type="f32"/>
+    <dag:body>
+      <!-- gate = x @ Wgate; up = x @ Wup -->
+      <!-- hidden_i = silu(gate_i) * up_i -->
+      <!-- out = hidden @ Wdown -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- transformer_block: one decoder layer -->
+  <dag:function name="transformer_block" export="true">
+    <dag:param name="x_ptr" type="i32"/>
+    <dag:param name="weights_ptr" type="i32"/>
+    <dag:param name="kv_cache_ptr" type="i32"/>
+    <dag:param name="pos" type="i32"/>
+    <dag:param name="hidden" type="i32"/>
+    <dag:param name="n_heads" type="i32"/>
+    <dag:param name="n_kv_heads" type="i32"/>
+    <dag:param name="intermediate" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- 1. h = RMSNorm(x) -->
+      <!-- 2. q,k,v = projections -->
+      <!-- 3. RoPE(q,k) -->
+      <!-- 4. KV cache append -->
+      <!-- 5. attention -->
+      <!-- 6. x = x + Wo(attn) -->
+      <!-- 7. h2 = RMSNorm(x) -->
+      <!-- 8. mlp = SwiGLU(h2) -->
+      <!-- 9. x = x + mlp -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- forward: full model forward pass -->
+  <dag:function name="forward" export="true">
+    <dag:param name="tokens_ptr" type="i32"/>
+    <dag:param name="n_tokens" type="i32"/>
+    <dag:param name="weights_ptr" type="i32"/>
+    <dag:param name="kv_cache_ptr" type="i32"/>
+    <dag:param name="logits_ptr" type="i32"/>
+    <dag:param name="n_layers" type="i32"/>
+    <dag:param name="hidden" type="i32"/>
+    <dag:param name="vocab" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="layer" type="i32"/>
+    <dag:body>
+      <!-- Embed tokens -->
+      <!-- For each layer: transformer_block -->
+      <!-- Final RMSNorm -->
+      <!-- lm_head -> logits -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- sample_greedy: argmax over logits -->
+  <dag:function name="sample_greedy" export="true">
+    <dag:param name="logits_ptr" type="i32"/>
+    <dag:param name="vocab" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="best_id" type="i32"/>
+    <dag:local name="best_val" type="f32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <!-- argmax: return id with highest logit -->
+      <dag:local.set name="best_id">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <dag:local.get name="best_id"/>
+    </dag:body>
+  </dag:function>
+
+  <!-- sample_topk: top-k sampling with temperature -->
+  <dag:function name="sample_topk" export="true">
+    <dag:param name="logits_ptr" type="i32"/>
+    <dag:param name="vocab" type="i32"/>
+    <dag:param name="k" type="i32"/>
+    <dag:param name="temp" type="f32"/>
+    <dag:param name="seed" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- Scale by temp, softmax, top-k filter, sample from distribution -->
+      <!-- Deterministic given seed (xorshift PRNG) -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+</dag:module>

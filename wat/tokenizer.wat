@@ -7,7 +7,6 @@
     (param $left_id i32)
     (param $right_id i32)
     (result i32)
-    (local $hash i32)
     i32.const -1
   )
   (func $bpe_encode_word (export "bpe_encode_word")
@@ -18,8 +17,61 @@
     (result i32)
     (local $n_tokens i32)
     (local $i i32)
+    (local $best_rank i32)
+    (local $best_pos i32)
     i32.const 0
     local.set $n_tokens
     local.get $n_tokens
+  )
+  (func $bpe_encode (export "bpe_encode")
+    (param $text_ptr i32)
+    (param $text_len i32)
+    (param $out_ptr i32)
+    (param $out_capacity i32)
+    (result i32)
+    (local $total i32)
+    i32.const 0
+    local.set $total
+    local.get $total
+  )
+  (func $bpe_decode (export "bpe_decode")
+    (param $ids_ptr i32)
+    (param $n_ids i32)
+    (param $out_ptr i32)
+    (param $out_capacity i32)
+    (result i32)
+    (local $out_len i32)
+    (local $i i32)
+    i32.const 0
+    local.set $out_len
+    local.get $out_len
+  )
+  (func $parse_byte_fallback (export "parse_byte_fallback")
+    (param $str_ptr i32)
+    (param $str_len i32)
+    (result i32)
+    i32.const -1
+  )
+  (func $vocab_lookup (export "vocab_lookup")
+    (param $token_ptr i32)
+    (param $token_len i32)
+    (result i32)
+    i32.const -1
+  )
+  (func $unigram_encode (export "unigram_encode")
+    (param $text_ptr i32)
+    (param $text_len i32)
+    (param $out_ptr i32)
+    (param $out_capacity i32)
+    (result i32)
+    i32.const 0
+  )
+  (func $wordpiece_encode (export "wordpiece_encode")
+    (param $text_ptr i32)
+    (param $text_len i32)
+    (param $out_ptr i32)
+    (param $out_capacity i32)
+    (result i32)
+    i32.const 0
   )
 )

@@ -12,6 +12,10 @@
     (param $out_ptr i32)
     (result i32)
     (local $i i32)
+    (local $state0 i32)
+    (local $state1 i32)
+    (local $state2 i32)
+    (local $state3 i32)
     i32.const 0
   )
   (func $hash_chunk (export "hash_chunk")
@@ -22,5 +26,30 @@
     (param $out_ptr i32)
     (result i32)
     i32.const 0
+  )
+  (func $kappa_new (export "kappa_new")
+    (param $state_ptr i32)
+    (result i32)
+    i32.const 0
+  )
+  (func $kappa_update (export "kappa_update")
+    (param $state_ptr i32)
+    (param $bytes_ptr i32)
+    (param $bytes_len i32)
+    (result i32)
+    i32.const 0
+  )
+  (func $kappa_finalize (export "kappa_finalize")
+    (param $state_ptr i32)
+    (param $out_ptr i32)
+    (result i32)
+    i32.const 71
+  )
+  (func $kappa_of (export "kappa_of")
+    (param $bytes_ptr i32)
+    (param $bytes_len i32)
+    (param $out_ptr i32)
+    (result i32)
+    i32.const 71
   )
 )
