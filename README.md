@@ -18,6 +18,31 @@
 
 ---
 
+## Why This Exists: The Upstream Lied
+
+The upstream project — [SNAPKITTYAGENT9NOVA/hologram-ai](https://github.com/SNAPKITTYAGENT9NOVA/hologram-ai) @ `c9609c0` — claimed things its code did not do. This is documented in the [hologram-re](https://github.com/AHMADALIPARR/hologram-re) reverse-engineering analysis, which read every line and checked every claim against the actual code.
+
+**What the upstream claimed vs. what the code did:**
+
+| Upstream Claim | Reality in Code | Verdict |
+|---|---|---|
+| "Immutable ledger" | No hash chain, no prev-hash, no signatures. Any writer can truncate, edit, delete, reorder lines. Remaining records still "validate." | **Marketing** |
+| "Cryptographic chain of custody … enforced inherently" | No previous-hash field. No Merkle structure. No signature or key. No external anchor. No read or verify API. | **Absent** |
+| "Absolute legal provenance" | Records carry free-text payloads, not κ-labels. Nothing identifies who wrote a record or binds it to a time source beyond the local clock. | **Marketing** |
+| "Every inference event is logged" | Callers discard the result with `let _ =`. The logger swallows I/O errors. A full disk drops events silently. | **Asserted-only** |
+| "Perfect internal κ-provenance" | The `AiEvent` in archivum is a *different type* from the one in core. Archivum records no κ. No code links an archivum record to an archive κ. | **Marketing** |
+| "Temperature 0 enforced before generation" | The only reject is a gate blocking the single-word prompt `"all"`. The success path doesn't call generation at all. | **Absent** |
+| "CNL Invariants" / PhaseMirror | Blocks exactly one input: the lone word `"all"`. `"all all"` passes. `"deploy"` passes. `"temperature 5"` passes. | **Theater** |
+
+**The pattern:** Strong claims about hiding, protection, provenance, and enforcement. Weak or absent mechanisms behind them. The code tells you what you want to hear — the prose is sycophantic, the implementation is empty.
+
+**This repo is the correction.** The ledger here is *actually* immutable: hash-chained, verified, tamper-evident. The SHA-256 is *actually* implemented. The claims in this README are backed by `STATUS.md` and executable tests. Where functions are stubs, it says so — no marketing.
+
+> **The upstream told you what you wanted to hear. This repo shows you what the code actually does.**
+> **Read it yourself. Verify it yourself. Trust nothing you can't check.**
+
+---
+
 ## What is this?
 
 hologram-ai is a Rust workspace that downloads Hugging Face models, compiles them into content-addressed `.holo` archives, and runs inference natively and in WebAssembly. ~50,000 lines of Rust. Cargo. Toolchains. Build steps.
