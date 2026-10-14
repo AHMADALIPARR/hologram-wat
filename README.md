@@ -36,7 +36,7 @@ The upstream project — [SNAPKITTYAGENT9NOVA/hologram-ai](https://github.com/SN
 
 **The pattern:** Strong claims about hiding, protection, provenance, and enforcement. Weak or absent mechanisms behind them. The code tells you what you want to hear — the prose is sycophantic, the implementation is empty.
 
-**This repo is the correction.** The ledger here is *actually* immutable: hash-chained, verified, tamper-evident. The SHA-256 is *actually* implemented. The claims in this README are backed by `STATUS.md` and executable tests. Where functions are stubs, it says so — no marketing.
+**This repo is the correction.** The ledger here is tamper-evident: hash-chained and verified. (Not immutable — a writer who controls the store could rewrite the whole chain with recomputed hashes and it would still verify, since there is no signature or external anchor. What the chain buys is detection of any edit, deletion, or reordering after the fact.) The SHA-256 is *actually* implemented. The claims in this README are backed by `STATUS.md` and executable tests. Where functions are stubs, it says so — no marketing.
 
 > **The upstream told you what you wanted to hear. This repo shows you what the code actually does.**
 > **Read it yourself. Verify it yourself. Trust nothing you can't check.**

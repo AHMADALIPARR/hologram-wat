@@ -87,11 +87,16 @@
 | `sha256_compress` | ⚠️ Partial | 64-round loop TODO |
 | `archive_*` | ⚠️ Stub | Tensor ops TODO |
 
-**Immutability proof** (`examples/test_ledger.py`):
+**Tamper-evidence proof** (`examples/test_ledger.py`):
 - Tamper any byte → detected (hash mismatch)
 - Delete any record → detected (prev_hash chain breaks)
 - Reorder records → detected (prev_hash links break)
 - Untampered chain → verifies
+
+Caveat: this is tamper-evidence, not immutability. A writer who controls the store
+can rewrite the whole chain with recomputed hashes and it will still verify —
+there is no signature or external anchor. The chain detects edits, deletions,
+and reordering after the fact; it does not prevent a full rewrite.
 
 This is what upstream archivum claimed ("immutable", "chain of custody") but did not deliver — it had no hash chain, no verification, no prev_hash. Any writer could truncate/edit/delete/reorder.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
-"""Test: ledger is ACTUALLY immutable.
+"""Test: ledger is tamper-evident (not immutable).
 
 Proves:
 1. Append records -> verify returns 1 (valid)
@@ -41,7 +41,7 @@ def ledger_hash(prev_hash: bytes, record_body: bytes) -> bytes:
 
 def main():
     print("=" * 60)
-    print("Ledger Immutability Test")
+    print("Ledger Tamper-Evidence Test")
     print("=" * 60)
     print()
 
@@ -148,14 +148,15 @@ def main():
     print()
 
     print("=" * 60)
-    print("All immutability tests PASSED")
+    print("All tamper-evidence tests PASSED")
     print("=" * 60)
     print()
-    print("The ledger is ACTUALLY immutable:")
+    print("The ledger is tamper-evident:")
     print("  - Tampering with any byte is detected")
     print("  - Deleting any record breaks the chain")
     print("  - Reordering records breaks the chain")
-    print("  - No way to modify history without detection")
+    print("  - A full rewrite with recomputed hashes would still verify")
+    print("    (no signature or external anchor) — detection, not prevention")
     print()
     print("This is what the upstream archivum claimed but did not deliver.")
     print("No hash chain. No verification. Just marketing.")
