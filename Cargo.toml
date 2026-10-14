@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/hologram-wat-transform"]
+resolver = "2"

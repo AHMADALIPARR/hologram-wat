@@ -1,0 +1,1 @@
+/home/hatch/workspace/hologram-wat/crates/hologram-wat-transform/target/debug/hologram-wat: /home/hatch/workspace/hologram-wat/crates/hologram-wat-transform/src/lib.rs /home/hatch/workspace/hologram-wat/crates/hologram-wat-transform/src/main.rs

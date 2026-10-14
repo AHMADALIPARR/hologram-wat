@@ -1,0 +1,19 @@
+[package]
+name = "hologram-wat-transform"
+version = "0.1.0"
+edition = "2021"
+description = "XML DAG DSL to pure WAT transformer (Rust implementation)"
+license = "LicenseRef-Sovereign-Leviathan-SL-AGPL3-001"
+
+[dependencies]
+quick-xml = "0.36"
+wat = "=1.0.80"
+anyhow = "1.0"
+
+[lib]
+name = "hologram_wat_transform"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hologram-wat"
+path = "src/main.rs"

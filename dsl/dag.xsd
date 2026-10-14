@@ -213,3 +213,6 @@
   </xs:complexType>
 
 </xs:schema>
+
+  <!-- Extended instruction set for real implementations -->
+  <!-- These are added to the BodyType choice via separate definitions -->

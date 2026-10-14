@@ -132,10 +132,12 @@ const kappa = instance.exports.kappa_of(dataPtr, dataLen, outPtr);
 | **`tokenizer`** | BPE, Unigram, WordPiece | Tokenize text in the browser. No server. |
 | **`regex`** | GPT-2 pre-tokenizer | The split that makes BPE work. Look-ahead failure modeled. |
 | **`common`** | IR: DType, ops, matmul, softmax, norms | The typed intermediate representation. |
-| **`inference`** | RMSNorm, RoPE, GQA attention, SwiGLU, forward | **The transformer.** The whole forward pass in WAT. |
+| **`inference`** | RMSNorm, RoPE, GQA attention, SwiGLU, forward | **The transformer.** Forward pass scaffolding — bodies TODO. |
 | **`archive`** | .holo format, ledger | Content-addressed archives with append-only provenance. |
 
 **9 modules. 65 functions. 1,361 lines of XML → 719 lines of WAT. All valid WASM.**
+
+> **Status (2026-10-13):** SHA-256 core (`rotr32`, `ch`, `maj`, `sigma0/1`, `small_sigma0/1`) and quant (`abs_f32`, `f16_to_f32`) are implemented and verified against test vectors. Remaining functions are signatures + pipeline scaffolding — bodies are TODO. See [STATUS.md](STATUS.md) for per-function implementation status. The pipeline (XML → XSLT → WAT → WASM) is real and deterministic. The demo illustrates intended math in numpy; it does not yet call WASM exports for the full pipeline.
 
 ---
 
@@ -334,7 +336,7 @@ Pipeline: XML → XSLT → WAT → WASM → tensors flow
   → attention/MLP → content-addressed output
 ```
 
-Real tensor math. Real pipeline. Run it yourself.
+Illustrated tensor math (numpy). Real pipeline (XML → XSLT → WAT). Run it yourself. WASM exports for the full pipeline are in progress — see STATUS.md.
 
 ---
 
