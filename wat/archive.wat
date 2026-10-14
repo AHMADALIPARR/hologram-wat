@@ -4,6 +4,415 @@
 ;; DO NOT EDIT. Edit the XML DSL and re-run the transform.
 (module
   (memory 32)
+  (func $sha256_rotr
+    (param $x i32)
+    (param $n i32)
+    (result i32)
+    local.get $x
+    local.get $n
+    i32.rotr
+  )
+  (func $sha256_ch
+    (param $e i32)
+    (param $f i32)
+    (param $g i32)
+    (result i32)
+    local.get $e
+    local.get $f
+    i32.and
+    local.get $e
+    i32.const -1
+    i32.xor
+    local.get $g
+    i32.and
+    i32.xor
+  )
+  (func $sha256_maj
+    (param $a i32)
+    (param $b i32)
+    (param $c i32)
+    (result i32)
+    local.get $a
+    local.get $b
+    i32.and
+    local.get $a
+    local.get $c
+    i32.and
+    i32.xor
+    local.get $b
+    local.get $c
+    i32.and
+    i32.xor
+  )
+  (func $sha256_sigma0
+    (param $x i32)
+    (result i32)
+    local.get $x
+    i32.const 2
+    call $sha256_rotr
+    local.get $x
+    i32.const 13
+    call $sha256_rotr
+    i32.xor
+    local.get $x
+    i32.const 22
+    call $sha256_rotr
+    i32.xor
+  )
+  (func $sha256_sigma1
+    (param $x i32)
+    (result i32)
+    local.get $x
+    i32.const 6
+    call $sha256_rotr
+    local.get $x
+    i32.const 11
+    call $sha256_rotr
+    i32.xor
+    local.get $x
+    i32.const 25
+    call $sha256_rotr
+    i32.xor
+  )
+  (func $sha256_small_sigma0
+    (param $x i32)
+    (result i32)
+    local.get $x
+    i32.const 7
+    call $sha256_rotr
+    local.get $x
+    i32.const 18
+    call $sha256_rotr
+    i32.xor
+    local.get $x
+    i32.const 3
+    i32.shr_u
+    i32.xor
+  )
+  (func $sha256_small_sigma1
+    (param $x i32)
+    (result i32)
+    local.get $x
+    i32.const 17
+    call $sha256_rotr
+    local.get $x
+    i32.const 19
+    call $sha256_rotr
+    i32.xor
+    local.get $x
+    i32.const 10
+    i32.shr_u
+    i32.xor
+  )
+  (func $sha256_k
+    (param $i i32)
+    (result i32)
+    local.get $i
+    i32.const 4
+    i32.mul
+    i32.load offset=4096 align=4
+  )
+  (func $sha256_compress (export "sha256_compress")
+    (param $state_ptr i32)
+    (param $block_ptr i32)
+    (result i32)
+    (local $a i32)
+    (local $b i32)
+    (local $c i32)
+    (local $d i32)
+    (local $e i32)
+    (local $f i32)
+    (local $g i32)
+    (local $h i32)
+    (local $i i32)
+    (local $t1 i32)
+    (local $t2 i32)
+    (local $w i32)
+    (local $w_ptr i32)
+    i32.const 8192
+    local.set $w_ptr
+    local.get $state_ptr
+    i32.load offset=0 align=4
+    local.set $a
+    local.get $state_ptr
+    i32.load offset=4 align=4
+    local.set $b
+    local.get $state_ptr
+    i32.load offset=8 align=4
+    local.set $c
+    local.get $state_ptr
+    i32.load offset=12 align=4
+    local.set $d
+    local.get $state_ptr
+    i32.load offset=16 align=4
+    local.set $e
+    local.get $state_ptr
+    i32.load offset=20 align=4
+    local.set $f
+    local.get $state_ptr
+    i32.load offset=24 align=4
+    local.set $g
+    local.get $state_ptr
+    i32.load offset=28 align=4
+    local.set $h
+    i32.const 0
+  )
+  (func $ledger_init (export "ledger_init")
+    (param $ledger_ptr i32)
+    (result i32)
+    (local $i i32)
+    local.get $ledger_ptr
+    i32.const 0
+    i32.store offset=0 align=4
+    i32.const 0
+    local.set $i
+    local.get $ledger_ptr
+    i32.const 0
+    i32.store offset=4 align=4
+    local.get $ledger_ptr
+    i32.const 0
+    i32.store offset=8 align=4
+    local.get $ledger_ptr
+    i32.const 0
+    i32.store offset=12 align=4
+    local.get $ledger_ptr
+    i32.const 0
+    i32.store offset=16 align=4
+    local.get $ledger_ptr
+    i32.const 0
+    i32.store offset=20 align=4
+    local.get $ledger_ptr
+    i32.const 0
+    i32.store offset=24 align=4
+    local.get $ledger_ptr
+    i32.const 0
+    i32.store offset=28 align=4
+    local.get $ledger_ptr
+    i32.const 0
+    i32.store offset=32 align=4
+    i32.const 0
+  )
+  (func $ledger_length (export "ledger_length")
+    (param $ledger_ptr i32)
+    (result i32)
+    local.get $ledger_ptr
+    i32.load offset=0 align=4
+  )
+  (func $ledger_head (export "ledger_head")
+    (param $ledger_ptr i32)
+    (param $out_ptr i32)
+    (result i32)
+    local.get $out_ptr
+    local.get $ledger_ptr
+    i32.load offset=4 align=4
+    i32.store offset=0 align=4
+    local.get $out_ptr
+    local.get $ledger_ptr
+    i32.load offset=8 align=4
+    i32.store offset=4 align=4
+    local.get $out_ptr
+    local.get $ledger_ptr
+    i32.load offset=12 align=4
+    i32.store offset=8 align=4
+    local.get $out_ptr
+    local.get $ledger_ptr
+    i32.load offset=16 align=4
+    i32.store offset=12 align=4
+    local.get $out_ptr
+    local.get $ledger_ptr
+    i32.load offset=20 align=4
+    i32.store offset=16 align=4
+    local.get $out_ptr
+    local.get $ledger_ptr
+    i32.load offset=24 align=4
+    i32.store offset=20 align=4
+    local.get $out_ptr
+    local.get $ledger_ptr
+    i32.load offset=28 align=4
+    i32.store offset=24 align=4
+    local.get $out_ptr
+    local.get $ledger_ptr
+    i32.load offset=32 align=4
+    i32.store offset=28 align=4
+    i32.const 0
+  )
+  (func $ledger_append (export "ledger_append")
+    (param $ledger_ptr i32)
+    (param $record_ptr i32)
+    (result i32)
+    (local $count i32)
+    (local $dest i32)
+    (local $i i32)
+    local.get $ledger_ptr
+    call $ledger_length
+    local.set $count
+    local.get $ledger_ptr
+    i32.const 36
+    i32.add
+    local.get $count
+    i32.const 264
+    i32.mul
+    i32.add
+    local.set $dest
+    local.get $dest
+    local.get $ledger_ptr
+    i32.load offset=4 align=4
+    i32.store offset=0 align=4
+    local.get $dest
+    local.get $ledger_ptr
+    i32.load offset=8 align=4
+    i32.store offset=4 align=4
+    local.get $dest
+    local.get $ledger_ptr
+    i32.load offset=12 align=4
+    i32.store offset=8 align=4
+    local.get $dest
+    local.get $ledger_ptr
+    i32.load offset=16 align=4
+    i32.store offset=12 align=4
+    local.get $dest
+    local.get $ledger_ptr
+    i32.load offset=20 align=4
+    i32.store offset=16 align=4
+    local.get $dest
+    local.get $ledger_ptr
+    i32.load offset=24 align=4
+    i32.store offset=20 align=4
+    local.get $dest
+    local.get $ledger_ptr
+    i32.load offset=28 align=4
+    i32.store offset=24 align=4
+    local.get $dest
+    local.get $ledger_ptr
+    i32.load offset=32 align=4
+    i32.store offset=28 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=0 align=4
+    i32.store offset=32 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=4 align=4
+    i32.store offset=36 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=8 align=4
+    i32.store offset=40 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=12 align=4
+    i32.store offset=44 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=16 align=4
+    i32.store offset=48 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=20 align=4
+    i32.store offset=52 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=24 align=4
+    i32.store offset=56 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=28 align=4
+    i32.store offset=60 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=32 align=4
+    i32.store offset=64 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=36 align=4
+    i32.store offset=68 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=40 align=4
+    i32.store offset=72 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=44 align=4
+    i32.store offset=76 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=48 align=4
+    i32.store offset=80 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=52 align=4
+    i32.store offset=84 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=56 align=4
+    i32.store offset=88 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=60 align=4
+    i32.store offset=92 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=64 align=4
+    i32.store offset=96 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=68 align=4
+    i32.store offset=100 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=72 align=4
+    i32.store offset=104 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=76 align=4
+    i32.store offset=108 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=80 align=4
+    i32.store offset=112 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=84 align=4
+    i32.store offset=116 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=88 align=4
+    i32.store offset=120 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=92 align=4
+    i32.store offset=124 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=96 align=4
+    i32.store offset=128 align=4
+    local.get $dest
+    local.get $record_ptr
+    i32.load offset=100 align=4
+    i32.store offset=132 align=4
+    local.get $ledger_ptr
+    local.get $count
+    i32.const 1
+    i32.add
+    i32.store offset=0 align=4
+    local.get $count
+    i32.const 1
+    i32.add
+  )
+  (func $ledger_verify (export "ledger_verify")
+    (param $ledger_ptr i32)
+    (result i32)
+    (local $count i32)
+    (local $i i32)
+    (local $rec_ptr i32)
+    (local $valid i32)
+    local.get $ledger_ptr
+    call $ledger_length
+    local.set $count
+    i32.const 1
+    local.set $valid
+    local.get $valid
+  )
   (func $archive_create (export "archive_create")
     (param $archive_ptr i32)
     (result i32)
@@ -32,13 +441,6 @@
   )
   (func $archive_verify (export "archive_verify")
     (param $archive_ptr i32)
-    (result i32)
-    i32.const 0
-  )
-  (func $ledger_append (export "ledger_append")
-    (param $ledger_ptr i32)
-    (param $record_ptr i32)
-    (param $record_len i32)
     (result i32)
     i32.const 0
   )
