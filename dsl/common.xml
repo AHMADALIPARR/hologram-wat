@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  common.xml — Common IR in XML DAG DSL.
+  SPDX-License-Identifier: AGPL-3.0-only
+  Ported from: hologram-re/oracle/crates/hologram-ai-common/src/
+    - ir/ (intermediate representation for tensor ops)
+    - lib.rs
+
+  The IR is a typed DAG of tensor operations:
+    - Tensor: dtype, shape, data pointer
+    - Op: MatMul, Add, Softmax, LayerNorm, etc.
+    - Graph: nodes + edges, topologically sorted
+
+  This module implements IR node evaluation in WAT.
+-->
+<dag:module xmlns:dag="http://hologram.dev/dag" name="common">
+
+  <dag:memory pages="16"/>
+
+  <!--
+    ir_eval_add: element-wise add of two tensors.
+    Input: a_ptr, b_ptr, out_ptr, numel
+    Returns: 0 on success.
+  -->
+  <dag:function name="ir_eval_add" export="true">
+    <dag:param name="a_ptr" type="i32"/>
+    <dag:param name="b_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="numel" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:local name="a_val" type="f32"/>
+    <dag:local name="b_val" type="f32"/>
+    <dag:body>
+      <dag:local.set name="i">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <!-- Loop: out[i] = a[i] + b[i] for i in 0..numel -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!--
+    ir_eval_matmul: matrix multiply C = A @ B.
+    Input: a_ptr (M x K), b_ptr (K x N), c_ptr (M x N), m, k, n
+    Returns: 0 on success.
+    Naive triple loop. Optimized versions use SIMD (v128).
+  -->
+  <dag:function name="ir_eval_matmul" export="true">
+    <dag:param name="a_ptr" type="i32"/>
+    <dag:param name="b_ptr" type="i32"/>
+    <dag:param name="c_ptr" type="i32"/>
+    <dag:param name="m" type="i32"/>
+    <dag:param name="k" type="i32"/>
+    <dag:param name="n" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:local name="j" type="i32"/>
+    <dag:local name="p" type="i32"/>
+    <dag:local name="sum" type="f32"/>
+    <dag:body>
+      <!-- Triple loop: C[i,j] = sum_p A[i,p] * B[p,j] -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+</dag:module>

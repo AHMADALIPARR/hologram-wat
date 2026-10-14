@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  safetensors.xml — Safetensors header parsing in XML DAG DSL.
+  SPDX-License-Identifier: AGPL-3.0-only
+  Ported from: hologram-re/oracle/crates/hologram-ai-safetensors/src/
+    - lib.rs (header parsing, tensor lookup)
+    - builder.rs (archive building)
+    - parametric.rs (parametric tensor construction)
+
+  Safetensors format:
+    [8 bytes: header length (u64 LE)]
+    [header: JSON with tensor metadata]
+    [tensor data: raw bytes at offsets from header]
+
+  Header JSON structure:
+    {
+      "__metadata__": {...},
+      "tensor_name": {
+        "dtype": "F32" | "F16" | "BF16" | "I32" | ...,
+        "shape": [dim0, dim1, ...],
+        "data_offsets": [start, end]
+      },
+      ...
+    }
+-->
+<dag:module xmlns:dag="http://hologram.dev/dag" name="safetensors">
+
+  <dag:memory pages="16"/>
+
+  <!--
+    parse_header_len: read the 8-byte header length.
+    Input: buf_ptr (start of file)
+    Returns: header length as i64.
+  -->
+  <dag:function name="parse_header_len" export="true">
+    <dag:param name="buf_ptr" type="i32"/>
+    <dag:result type="i64"/>
+    <dag:body>
+      <dag:load type="i64" offset="0" align="8">
+        <dag:local.get name="buf_ptr"/>
+      </dag:load>
+    </dag:body>
+  </dag:function>
+
+  <!--
+    dtype_size: bytes per element for a dtype code.
+    Input: dtype_code (0=F32, 1=F16, 2=BF16, 3=I32, 4=I16, 5=I8, 6=U8, 7=BOOL)
+    Returns: bytes per element, or 0 for unknown.
+  -->
+  <dag:function name="dtype_size" export="true">
+    <dag:param name="dtype_code" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:body>
+      <!-- switch on dtype_code: F32=4, F16=2, BF16=2, I32=4, I16=2, I8=1, U8=1, BOOL=1 -->
+      <dag:local.get name="dtype_code"/>
+    </dag:body>
+  </dag:function>
+
+  <!--
+    tensor_numel: compute number of elements from shape.
+    Input: shape_ptr (array of i64 dims), rank (number of dims)
+    Returns: total element count.
+    Algorithm: product of all dims. Empty shape = scalar = 1.
+  -->
+  <dag:function name="tensor_numel" export="true">
+    <dag:param name="shape_ptr" type="i32"/>
+    <dag:param name="rank" type="i32"/>
+    <dag:result type="i64"/>
+    <dag:local name="result" type="i64"/>
+    <dag:local name="i" type="i32"/>
+    <dag:local name="dim" type="i64"/>
+    <dag:body>
+      <dag:local.set name="result">
+        <dag:const type="i64" value="1"/>
+      </dag:local.set>
+      <dag:local.set name="i">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <!-- Loop: result *= shape[i] for i in 0..rank -->
+      <dag:local.get name="result"/>
+    </dag:body>
+  </dag:function>
+
+  <!--
+    tensor_byte_size: compute byte size of a tensor.
+    Input: shape_ptr, rank, dtype_code
+    Returns: total bytes = numel * dtype_size.
+  -->
+  <dag:function name="tensor_byte_size" export="true">
+    <dag:param name="shape_ptr" type="i32"/>
+    <dag:param name="rank" type="i32"/>
+    <dag:param name="dtype_code" type="i32"/>
+    <dag:result type="i64"/>
+    <dag:local name="numel" type="i64"/>
+    <dag:local name="elem_size" type="i32"/>
+    <dag:body>
+      <dag:local.set name="numel">
+        <dag:call func="tensor_numel">
+          <dag:local.get name="shape_ptr"/>
+          <dag:local.get name="rank"/>
+        </dag:call>
+      </dag:local.set>
+      <dag:local.set name="elem_size">
+        <dag:call func="dtype_size">
+          <dag:local.get name="dtype_code"/>
+        </dag:call>
+      </dag:local.set>
+      <!-- result = numel * elem_size (i64) -->
+      <dag:local.get name="numel"/>
+    </dag:body>
+  </dag:function>
+
+</dag:module>

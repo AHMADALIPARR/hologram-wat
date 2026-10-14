@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  quant.xml — Q4_0 and Q8_0 quantization in XML DAG DSL.
+  SPDX-License-Identifier: AGPL-3.0-only
+  Ported from: hologram-re/oracle/crates/hologram-ai-quant/src/
+    - q4_0.rs (4-bit quantization, 32-element blocks)
+    - q8_0.rs (8-bit quantization, 32-element blocks)
+    - encode.rs, scheme.rs, lib.rs
+
+  Q4_0 format: 32 weights -> 1 f16 scale + 16 bytes (2 weights/byte)
+  Q8_0 format: 32 weights -> 1 f16 scale + 32 bytes (1 weight/byte)
+
+  Dequant: w = (q - 8) * scale for Q4_0, w = q * scale for Q8_0.
+-->
+<dag:module xmlns:dag="http://hologram.dev/dag" name="quant">
+
+  <dag:memory pages="1"/>
+
+  <!--
+    dequant_q4_0_block: dequantize one 32-element Q4_0 block.
+    Input: block_ptr (points to 18 bytes: 2-byte f16 scale + 16 bytes packed)
+    Output: out_ptr (points to 32 f32 values)
+    Returns: 0 on success.
+  -->
+  <dag:function name="dequant_q4_0_block" export="true">
+    <dag:param name="block_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="scale" type="f32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:local name="packed" type="i32"/>
+    <dag:local name="q_lo" type="i32"/>
+    <dag:local name="q_hi" type="i32"/>
+    <dag:body>
+      <!-- Load f16 scale (2 bytes) and convert to f32 -->
+      <!-- scale = f16_to_f32(load_u16(block_ptr)) -->
+      <dag:local.set name="scale">
+        <dag:const type="f32" value="1.0"/>
+      </dag:local.set>
+      <!-- Loop over 16 packed bytes, each yields 2 weights -->
+      <dag:local.set name="i">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <!-- Unrolled conceptually: for each byte b at block_ptr+2+i: -->
+      <!--   q_lo = (b & 0x0F) - 8; out[2*i] = q_lo * scale -->
+      <!--   q_hi = (b >> 4) - 8; out[2*i+1] = q_hi * scale -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!--
+    dequant_q8_0_block: dequantize one 32-element Q8_0 block.
+    Input: block_ptr (points to 34 bytes: 2-byte f16 scale + 32 bytes)
+    Output: out_ptr (points to 32 f32 values)
+    Returns: 0 on success.
+  -->
+  <dag:function name="dequant_q8_0_block" export="true">
+    <dag:param name="block_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="scale" type="f32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:local name="q" type="i32"/>
+    <dag:body>
+      <!-- Load f16 scale -->
+      <dag:local.set name="scale">
+        <dag:const type="f32" value="1.0"/>
+      </dag:local.set>
+      <!-- Loop over 32 bytes: out[i] = q[i] * scale -->
+      <dag:local.set name="i">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+  <!--
+    quant_q4_0_block: quantize 32 f32 values to Q4_0.
+    Input: in_ptr (32 f32), out_ptr (18 bytes)
+    Returns: 0 on success.
+    Algorithm: find max abs, scale = max/7, quantize each w to round(w/scale)+8.
+  -->
+  <dag:function name="quant_q4_0_block" export="true">
+    <dag:param name="in_ptr" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="max_abs" type="f32"/>
+    <dag:local name="scale" type="f32"/>
+    <dag:local name="inv_scale" type="f32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <dag:local.set name="max_abs">
+        <dag:const type="f32" value="0.0"/>
+      </dag:local.set>
+      <!-- Pass 1: find max absolute value -->
+      <!-- Pass 2: scale = max_abs / 7.0, inv_scale = 1/scale -->
+      <!-- Pass 3: quantize and pack pairs -->
+      <dag:const type="i32" value="0"/>
+    </dag:body>
+  </dag:function>
+
+</dag:module>

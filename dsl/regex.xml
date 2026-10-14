@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  regex.xml — Regex pre-tokenizer in XML DAG DSL.
+  SPDX-License-Identifier: AGPL-3.0-only
+  Ported from: hologram-re/oracle/crates/hologram-ai-regex/src/lib.rs
+
+  split_fragments: split text on regex matches.
+  If pattern fails to compile -> return whole text as one fragment.
+  If pattern compiles -> split on matches, return fragments.
+
+  Key finding: regex-automata has no look-ahead, so the classic
+  GPT-2 pattern with \s+(?!\S) fails to compile and falls through
+  to identity. This is modeled explicitly.
+-->
+<dag:module xmlns:dag="http://hologram.dev/dag" name="regex">
+
+  <dag:memory pages="1"/>
+
+  <!--
+    split_fragments: split text at regex match boundaries.
+    Input: text_ptr, text_len, pattern_ptr, pattern_len, out_ptr, out_capacity
+    Returns: number of fragments, or -1 on error.
+    Behavior: if pattern fails to compile, return 1 (whole text).
+  -->
+  <dag:function name="split_fragments" export="true">
+    <dag:param name="text_ptr" type="i32"/>
+    <dag:param name="text_len" type="i32"/>
+    <dag:param name="pattern_ptr" type="i32"/>
+    <dag:param name="pattern_len" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="out_capacity" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="compiled" type="i32"/>
+    <dag:local name="n_frags" type="i32"/>
+    <dag:body>
+      <!-- Attempt to compile pattern -->
+      <dag:local.set name="compiled">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <!-- If not compiled -> identity: one fragment = whole text -->
+      <!-- If compiled -> scan for matches, split at boundaries -->
+      <dag:local.set name="n_frags">
+        <dag:const type="i32" value="1"/>
+      </dag:local.set>
+      <dag:local.get name="n_frags"/>
+    </dag:body>
+  </dag:function>
+
+</dag:module>

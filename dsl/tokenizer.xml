@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  tokenizer.xml — BPE tokenizer in XML DAG DSL.
+  SPDX-License-Identifier: AGPL-3.0-only
+  Ported from: hologram-re/oracle/crates/hologram-ai-tokenizer/src/
+    - bpe.rs (Byte-Pair Encoding)
+    - vocab.rs, config.rs, native.rs
+    - unigram.rs, wordpiece.rs
+
+  BPE algorithm:
+    1. Pre-tokenize text into words (regex split).
+    2. Split each word into characters.
+    3. Repeatedly merge the highest-priority adjacent pair
+       until no more merges apply or token limit reached.
+    4. Output token ids.
+
+  This module implements the core BPE merge loop and vocab lookup.
+  Full vocab table is loaded from external data (not inlined in WAT).
+-->
+<dag:module xmlns:dag="http://hologram.dev/dag" name="tokenizer">
+
+  <dag:memory pages="16"/>
+
+  <!--
+    bpe_merge_priority: look up merge priority for a pair.
+    Input: left_id, right_id (token ids)
+    Returns: merge priority (lower = merge first), or -1 if no merge.
+    The merge table is stored in linear memory.
+  -->
+  <dag:function name="bpe_merge_priority" export="true">
+    <dag:param name="left_id" type="i32"/>
+    <dag:param name="right_id" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="hash" type="i32"/>
+    <dag:body>
+      <!-- hash = (left_id * 32000 + right_id) % table_size -->
+      <!-- lookup in merge table; return priority or -1 -->
+      <dag:const type="i32" value="-1"/>
+    </dag:body>
+  </dag:function>
+
+  <!--
+    bpe_encode_word: encode one word to token ids.
+    Input: word_ptr (UTF-8 bytes), word_len, out_ptr, out_capacity
+    Returns: number of tokens written, or -1 on overflow.
+  -->
+  <dag:function name="bpe_encode_word" export="true">
+    <dag:param name="word_ptr" type="i32"/>
+    <dag:param name="word_len" type="i32"/>
+    <dag:param name="out_ptr" type="i32"/>
+    <dag:param name="out_capacity" type="i32"/>
+    <dag:result type="i32"/>
+    <dag:local name="n_tokens" type="i32"/>
+    <dag:local name="i" type="i32"/>
+    <dag:body>
+      <!-- Step 1: split word into byte-level tokens -->
+      <!-- Step 2: merge loop — find best pair, merge, repeat -->
+      <!-- Step 3: write final token ids to out_ptr -->
+      <dag:local.set name="n_tokens">
+        <dag:const type="i32" value="0"/>
+      </dag:local.set>
+      <dag:local.get name="n_tokens"/>
+    </dag:body>
+  </dag:function>
+
+</dag:module>

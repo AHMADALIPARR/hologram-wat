@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  hologram-wat: XML DAG DSL schema for WebAssembly Text generation.
+  SPDX-License-Identifier: AGPL-3.0-only
+
+  This DSL describes a computation DAG in XML. The XSLT stylesheet
+  (xslt/dag-to-wat.xsl) transforms it into pure WebAssembly Text (WAT)
+  with no hidden abstraction — every operation is explicit WAT.
+
+  Design principles:
+  - XML is the source of truth. WAT is generated, never hand-written.
+  - Every node has an id. Edges reference ids. The DAG is explicit.
+  - Types are WASM primitive types: i32, i64, f32, f64, v128.
+  - Memory operations are explicit: load, store, alloc.
+  - No macros, no imports, no host functions. Pure WAT.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://hologram.dev/dag"
+           xmlns:dag="http://hologram.dev/dag"
+           elementFormDefault="qualified">
+
+  <!-- Root: a module containing functions and memory -->
+  <xs:element name="module">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="memory" type="dag:MemoryType" minOccurs="0"/>
+        <xs:element name="function" type="dag:FunctionType" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Linear memory declaration -->
+  <xs:complexType name="MemoryType">
+    <xs:attribute name="pages" type="xs:positiveInteger" use="required"/>
+    <xs:attribute name="max" type="xs:positiveInteger" use="optional"/>
+  </xs:complexType>
+
+  <!-- A function: params, results, locals, body -->
+  <xs:complexType name="FunctionType">
+    <xs:sequence>
+      <xs:element name="param" type="dag:ParamType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="result" type="dag:ResultType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="local" type="dag:LocalType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="body" type="dag:BodyType"/>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="export" type="xs:boolean" default="false"/>
+  </xs:complexType>
+
+  <xs:complexType name="ParamType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="type" type="dag:WasmType" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="ResultType">
+    <xs:attribute name="type" type="dag:WasmType" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="LocalType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="type" type="dag:WasmType" use="required"/>
+  </xs:complexType>
+
+  <!-- Body: sequence of instructions forming a DAG -->
+  <xs:complexType name="BodyType">
+    <xs:choice maxOccurs="unbounded">
+      <xs:element name="const" type="dag:ConstType"/>
+      <xs:element name="local.get" type="dag:LocalRefType"/>
+      <xs:element name="local.set" type="dag:LocalSetType"/>
+      <xs:element name="call" type="dag:CallType"/>
+      <xs:element name="add" type="dag:BinOpType"/>
+      <xs:element name="sub" type="dag:BinOpType"/>
+      <xs:element name="mul" type="dag:BinOpType"/>
+      <xs:element name="div" type="dag:BinOpType"/>
+      <xs:element name="load" type="dag:LoadType"/>
+      <xs:element name="store" type="dag:StoreType"/>
+      <xs:element name="block" type="dag:BlockType"/>
+      <xs:element name="loop" type="dag:BlockType"/>
+      <xs:element name="if" type="dag:IfType"/>
+      <xs:element name="br" type="dag:BrType"/>
+      <xs:element name="return" type="dag:ReturnType"/>
+      <xs:element name="drop" type="dag:DropType"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <!-- Primitive WASM types -->
+  <xs:simpleType name="WasmType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="i32"/>
+      <xs:enumeration value="i64"/>
+      <xs:enumeration value="f32"/>
+      <xs:enumeration value="f64"/>
+      <xs:enumeration value="v128"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="ConstType">
+    <xs:attribute name="type" type="dag:WasmType" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="LocalRefType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="LocalSetType">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+        <xs:element name="call" type="dag:CallType"/>
+        <xs:element name="add" type="dag:BinOpType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="CallType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="func" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="BinOpType">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+      </xs:choice>
+      <xs:choice>
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="type" type="dag:WasmType" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="LoadType">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="type" type="dag:WasmType" use="required"/>
+    <xs:attribute name="offset" type="xs:nonNegativeInteger" default="0"/>
+    <xs:attribute name="align" type="xs:positiveInteger" default="4"/>
+  </xs:complexType>
+
+  <xs:complexType name="StoreType">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+      </xs:choice>
+      <xs:choice>
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="type" type="dag:WasmType" use="required"/>
+    <xs:attribute name="offset" type="xs:nonNegativeInteger" default="0"/>
+    <xs:attribute name="align" type="xs:positiveInteger" default="4"/>
+  </xs:complexType>
+
+  <xs:complexType name="BlockType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+        <xs:element name="local.set" type="dag:LocalSetType"/>
+        <xs:element name="call" type="dag:CallType"/>
+        <xs:element name="br" type="dag:BrType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="label" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="IfType">
+    <xs:sequence>
+      <xs:element name="condition" type="dag:BodyType"/>
+      <xs:element name="then" type="dag:BodyType"/>
+      <xs:element name="else" type="dag:BodyType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="BrType">
+    <xs:attribute name="label" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="ReturnType">
+    <xs:sequence>
+      <xs:choice minOccurs="0">
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="DropType">
+    <xs:sequence>
+      <xs:choice>
+        <xs:element name="const" type="dag:ConstType"/>
+        <xs:element name="local.get" type="dag:LocalRefType"/>
+        <xs:element name="call" type="dag:CallType"/>
+      </xs:choice>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>
