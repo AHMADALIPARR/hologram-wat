@@ -277,6 +277,67 @@ Every step is visible. Every step is auditable. Every step is yours to inspect.
 
 ---
 
+## Demo: Tensors Flowing Through the Pipeline
+
+Run it:
+
+```bash
+python3 examples/demo_pipeline.py
+```
+
+Output:
+
+```
+============================================================
+hologram-wat — Tensor Pipeline Demo
+============================================================
+
+── 1. safetensors: tensor metadata ──
+  Tensor: shape [4, 8], dtype F32
+  numel = 4 × 8 = 32
+  byte_size = 32 × 4 = 128 bytes
+
+── 2. quant: Q4_0 dequantization ──
+  Q4_0 block: 18 bytes = 2-byte f16 scale + 16 packed bytes
+  Dequant: weight = (nibble - 8) × scale
+  Example: scale=1.0, nibble=9 → (9-8) × 1.0 = 1.0
+  32 weights from 18 bytes (1.78× compression vs F32)
+
+── 3. common: matmul + RMSNorm ──
+  A = [[1.0, 2.0, 3.0, 4.0], [5.0, 6.0, 7.0, 8.0]]
+  B = [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+  C = A @ B = [[4.0, 5.0, 5.0], [12.0, 13.0, 13.0]]
+
+  RMSNorm: x = [1.0, 2.0, 3.0, 4.0]
+  rms = sqrt(mean(x²) + eps) = 2.7386
+  x_norm = x / rms = [0.365, 0.730, 1.095, 1.461]
+
+── 4. inference: attention + SwiGLU ──
+  Q = [[1.0, 0.0, 0.0, 0.0]], K = [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0]]
+  scores = Q@K^T/sqrt(4) = [[0.5, 0.0]]
+  probs = softmax(scores) = [[0.622, 0.378]]
+  out = probs @ V = [[2.51, 3.51, 4.51, 5.51]]
+
+  SwiGLU: gate = [1.0, 2.0], up = [3.0, 4.0]
+  silu(gate) × up = [2.19, 7.05]
+
+── 5. kappahasher: content addressing ──
+  Every tensor gets a BLAKE3 hash: 'blake3:' + hex(digest)
+  The hash IS the address. Content-addressed storage.
+
+============================================================
+Pipeline: XML → XSLT → WAT → WASM → tensors flow
+============================================================
+
+  safetensors → quant → common → inference → kappahasher
+  Tensor metadata → dequantized weights → matmul/norm
+  → attention/MLP → content-addressed output
+```
+
+Real tensor math. Real pipeline. Run it yourself.
+
+---
+
 ## Contributing
 
 1. Write XML in `dsl/` following `dag.xsd`
@@ -290,7 +351,59 @@ The XSLT is the contract. If your XML is valid, your WAT is valid.
 
 ## License
 
-LicenseRef-Sovereign-Leviathan-SL-AGPL3-001 (SNAPKITTY OPAQUE SOURCE LICENSE v1.0). See [LICENSE](LICENSE).
+**SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001**
+
+### SNAPKITTY OPAQUE SOURCE LICENSE — Version 1.0
+
+Copyright © 2026 SnapKitty West. All rights reserved.
+
+This license governs the software, source code, documentation, mathematical constructions, computational methods, hardware descriptions, models, datasets, binaries, and other artifacts distributed with this license.
+
+#### I. Grant
+
+Subject to continuous compliance, the Licensor grants a limited, non-exclusive, non-transferable license to inspect, execute, study, reproduce for internal research, modify for internal research, create experimental derivatives, perform security research, perform cryptographic analysis, and implement the Work in a controlled hardware or software environment. No ownership is transferred.
+
+#### II. Attribution
+
+Every redistribution, publication, derivative artifact, binary distribution, or public research result substantially incorporating the Work must preserve the copyright notice, this license, the original repository or artifact identifier, applicable provenance information, and attribution to the original author or Licensor.
+
+#### III. Commercial Boundary
+
+Commercial exploitation requires separate written authorization. This includes selling the Work, selling modified versions, licensing for compensation, embedding into a commercial product, offering as a paid service, monetizing a derivative, or using the Work to provide a commercial computational service. Internal evaluation by an organization does not by itself constitute commercial distribution.
+
+#### IV. Research and Security Analysis
+
+Security research, cryptographic analysis, benchmarking, formal verification, vulnerability research, and academic investigation are permitted provided they do not constitute unauthorized commercial exploitation. Research conclusions must distinguish implemented behavior from conjecture, interpretation, or theoretical possibility.
+
+#### V. Reverse Engineering
+
+Reverse engineering for interoperability, verification, security research, reproducibility, or academic investigation is permitted. It does not transfer ownership or grant permission to commercially reproduce the Work.
+
+#### VI. Derivative Works
+
+A derivative Work must preserve attribution and provenance. It must not represent itself as the original Work. Material modifications must be identified as modifications.
+
+#### VII. Automated Systems
+
+Use by automated agents, autonomous systems, code-generation systems, computational agents, or other machine-operated systems is permitted for research and evaluation. Such systems may not use the Work to create an unauthorized commercial substitute.
+
+#### VIII. Hardware
+
+Research implementations in FPGA, ASIC, CPU, GPU, accelerator, emulator, simulator, or other computational hardware are permitted. Fabrication, commercial deployment, or commercial distribution requires separate authorization where the resulting implementation constitutes commercial exploitation.
+
+#### IX. No Patent / Trademark Grant
+
+No patent rights are granted except those expressly required by applicable law. No trademark rights are granted for SnapKitty, SnapKitty West, SnapKitty Rebels, or associated logos, marks, or branding.
+
+#### X. Termination
+
+Rights terminate automatically upon material violation. Rights may be restored at the sole discretion of the Licensor after the violation has been cured.
+
+#### XI. Disclaimer
+
+THE WORK IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, TO THE MAXIMUM EXTENT PERMITTED BY LAW.
+
+**Full license text:** See [LICENSE](LICENSE) for the complete license in English, 繁體中文, العربية, and the Raw Boolean License Model.
 
 Original hologram-ai: MIT OR Apache-2.0. This is an independent port, not a fork.
 
