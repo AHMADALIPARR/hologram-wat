@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   hologram-wat: XML DAG DSL schema for WebAssembly Text generation.
-  SPDX-License-Identifier: AGPL-3.0-only
+  SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
 
   This DSL describes a computation DAG in XML. The XSLT stylesheet
   (xslt/dag-to-wat.xsl) transforms it into pure WebAssembly Text (WAT)

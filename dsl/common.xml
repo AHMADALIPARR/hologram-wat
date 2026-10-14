@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   common.xml — Complete AI IR in XML DAG DSL.
-  SPDX-License-Identifier: AGPL-3.0-only
+  SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
   Ported from: hologram-re/oracle/crates/hologram-ai-common/src/
     - ir/dtype.rs (36 lines): DType enum + byte_size
     - ir/graph.rs (439 lines): AiGraph — nodes, edges, topological sort

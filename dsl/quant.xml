@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   quant.xml — Complete Q4_0, Q8_0, and int8 quantization in XML DAG DSL.
-  SPDX-License-Identifier: AGPL-3.0-only
+  SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
   Ported from: hologram-re/oracle/crates/hologram-ai-quant/src/
     - q4_0.rs (116 lines): Q4_0 block dequant
     - q8_0.rs (102 lines): Q8_0 block dequant

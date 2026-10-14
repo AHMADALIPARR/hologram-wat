@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   dag-to-wat.xsl — XSLT stylesheet transforming XML DAG DSL to pure WAT.
-  SPDX-License-Identifier: AGPL-3.0-only
+  SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
 
   Usage:
     xsltproc xslt/dag-to-wat.xsl dsl/module.xml > wat/module.wat

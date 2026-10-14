@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   safetensors.xml — Complete safetensors + parametric graph builder in XML DAG DSL.
-  SPDX-License-Identifier: AGPL-3.0-only
+  SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
   Ported from: hologram-re/oracle/crates/hologram-ai-safetensors/src/
     - lib.rs: build_graph_from_safetensors
     - builder.rs (96 lines): GraphBuilder

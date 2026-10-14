@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 Ahmad Ali Parr
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
 # NO-AI-TRAINING: This file may not be used to train machine learning models.
 """Transform XML DAG DSL to pure WAT via XSLT.
 

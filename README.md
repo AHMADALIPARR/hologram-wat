@@ -4,7 +4,7 @@
 
 [![WAT](https://img.shields.io/badge/WAT-pure-blue.svg)](wat/)
 [![XSLT](https://img.shields.io/badge/XSLT-XML_to_WAT-green.svg)](xslt/dag-to-wat.xsl)
-[![License](https://img.shields.io/badge/license-AGPL--3.0--only-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Sovereign--Leviathan--SL--AGPL3--001-blue.svg)](LICENSE)
 
 Every function in the hologram-ai oracle — safetensors, quantization, tokenization, regex, hashing, IR — expressed as an XML DAG, transformed by XSLT into pure WebAssembly Text. No Rust. No compiler. No hidden abstraction. You can read every instruction.
 
@@ -170,7 +170,7 @@ hologram-wat/
 
 ## License
 
-AGPL-3.0-only. See [LICENSE](LICENSE).
+LicenseRef-Sovereign-Leviathan-SL-AGPL3-001 (SNAPKITTY OPAQUE SOURCE LICENSE v1.0). See [LICENSE](LICENSE).
 
 Original hologram-ai: MIT OR Apache-2.0. This is an independent port, not a fork.
 

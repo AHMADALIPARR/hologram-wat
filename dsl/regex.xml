@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   regex.xml — Complete regex pre-tokenizer in XML DAG DSL.
-  SPDX-License-Identifier: AGPL-3.0-only
+  SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
   Ported from: hologram-re/oracle/crates/hologram-ai-regex/src/lib.rs (84 lines)
 
   GPT-2 style pre-tokenizer split pattern (look-around-free form):

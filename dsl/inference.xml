@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   inference.xml — Transformer forward pass in XML DAG DSL.
-  SPDX-License-Identifier: AGPL-3.0-only
+  SPDX-License-Identifier: LicenseRef-Sovereign-Leviathan-SL-AGPL3-001
   Ported from: hologram-ai inference engine (decoder-only transformer)
 
   Architecture (from parametric.rs + common IR):
